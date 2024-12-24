@@ -1,31 +1,38 @@
 import {SpotifyRepository} from "@/repository/spotify-repository";
+import React from "react";
 
-export default async function Home() {
+export default function Home() {
   const spotifyRepository = new SpotifyRepository();
+  React.useEffect(
+      () =>{
+        // If we find a code, we're in a callback, do a token exchange
+        if (spotifyRepository.code) {
+          spotifyRepository.getToken().then(() => {
+            // Remove code from URL so we can refresh correctly.
+            const url = new URL(window.location.href);
+            url.searchParams.delete("code");
 
-  // If we find a code, we're in a callback, do a token exchange
-  if (spotifyRepository.code) {
-    await spotifyRepository.getToken()
+            const updatedUrl = url.search ? url.href : url.href.replace('?', '');
+            window.history.replaceState({}, document.title, updatedUrl);
+          })
+        }
 
-    // Remove code from URL so we can refresh correctly.
-    const url = new URL(window.location.href);
-    url.searchParams.delete("code");
+        // If we have a token, we're logged in, so fetch user data and render logged in template
+        if (spotifyRepository.currentToken.access_token) {
+          spotifyRepository.getUserData()
+              .then((userData) =>{
+                renderTemplate("main", "logged-in-template", userData);
+                renderTemplate("oauth", "oauth-template", spotifyRepository.currentToken);
+              } );
 
-    const updatedUrl = url.search ? url.href : url.href.replace('?', '');
-    window.history.replaceState({}, document.title, updatedUrl);
-  }
+        }
 
-  // If we have a token, we're logged in, so fetch user data and render logged in template
-  if (spotifyRepository.currentToken.access_token) {
-    const userData = await spotifyRepository.getUserData();
-    renderTemplate("main", "logged-in-template", userData);
-    renderTemplate("oauth", "oauth-template", spotifyRepository.currentToken);
-  }
-
-  // Otherwise we're not logged in, so render the login template
-  if (!spotifyRepository.currentToken.access_token) {
-    renderTemplate("main", "login");
-  }
+        // Otherwise we're not logged in, so render the login template
+        if (!spotifyRepository.currentToken.access_token) {
+          renderTemplate("main", "login");
+        }
+      }
+  )
 
   // Click handlers
   async function loginWithSpotifyClick(): Promise<void> {
@@ -42,6 +49,7 @@ export default async function Home() {
     renderTemplate("oauth", "oauth-template", spotifyRepository.currentToken);
   }
 
+
   return (
 
       <div>
@@ -50,7 +58,7 @@ export default async function Home() {
 
         <template id="login">
           <h1>Welcome to the OAuth2 PKCE Example</h1>
-          <button id="login-button" data-bind-onclick={await loginWithSpotifyClick()}> Log in with Spotify </button>
+          <button id="login-button" data-bind-onclick={() => loginWithSpotifyClick()}> Log in with Spotify </button>
         </template>
 
         <template id="logged-in-template">
@@ -95,8 +103,8 @@ export default async function Home() {
             </tbody>
           </table>
 
-          <button id="refresh-token-button" data-bind-onclick={await refreshTokenClick()}>Refresh Token</button>
-          <button id="logout-button" data-bind-onclick={await logoutClick()}>Log out</button>
+          <button id="refresh-token-button" data-bind-onclick={() => refreshTokenClick()}>Refresh Token</button>
+          <button id="logout-button" data-bind-onclick={() => logoutClick()}>Log out</button>
         </template>
 
         <template id="oauth-template">

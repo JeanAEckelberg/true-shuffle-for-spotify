@@ -1,7 +1,7 @@
 import {Token} from "@/model/token";
 
 export class SpotifyRepository {
-    private readonly ClientId: string | undefined;
+    private readonly ClientId: string = "f40066a8358b4d289e44fdf7f0fc8aca";
     private authorizationEndpoint: string = "https://accounts.spotify.com/authorize";
     private tokenEndpoint: string = "https://accounts.spotify.com/api/token";
     private scope: string = 'user-read-private user-read-email';
@@ -11,8 +11,6 @@ export class SpotifyRepository {
 
 
     public constructor() {
-        this.ClientId = process.env.SPOTIFYCLIENTID;
-
         // On page load, try to fetch auth code from current browser search URL
         const args: URLSearchParams = new URLSearchParams(window.location.search);
         this.code = args.get('code');
