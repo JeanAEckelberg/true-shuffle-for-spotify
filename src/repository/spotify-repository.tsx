@@ -1,3 +1,5 @@
+import {Token} from "@/model/token";
+
 export class SpotifyRepository {
     private readonly ClientId: string | undefined;
     private authorizationEndpoint: string = "https://accounts.spotify.com/authorize";

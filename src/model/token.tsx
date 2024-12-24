@@ -1,5 +1,5 @@
 // Data structure that manages the current active token, caching it in localStorage
-class Token {
+export class Token {
     get access_token() { return localStorage.getItem('access_token') || null; }
     get refresh_token() { return localStorage.getItem('refresh_token') || null; }
     get expires_in() { return localStorage.getItem('refresh_in') || null }
