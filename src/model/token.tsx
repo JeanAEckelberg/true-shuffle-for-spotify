@@ -1,9 +1,10 @@
+"use client"
 // Data structure that manages the current active token, caching it in localStorage
 export class Token {
-    get access_token() { return localStorage.getItem('access_token') || null; }
-    get refresh_token() { return localStorage.getItem('refresh_token') || null; }
-    get expires_in() { return localStorage.getItem('refresh_in') || null }
-    get expires() { return localStorage.getItem('expires') || null }
+    get access_token() { return typeof window !== 'undefined' ? localStorage.getItem('access_token') || null : null; }
+    get refresh_token() { return typeof window !== 'undefined' ? localStorage.getItem('refresh_token') || null : null; }
+    get expires_in() { return typeof window !== 'undefined' ? localStorage.getItem('refresh_in') || null : null; }
+    get expires() { return typeof window !== 'undefined' ? localStorage.getItem('expires') || null : null; }
 
 
     static save(token: Token) : void {

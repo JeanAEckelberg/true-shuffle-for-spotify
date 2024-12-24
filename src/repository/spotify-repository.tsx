@@ -1,3 +1,4 @@
+"use client"
 import {Token} from "@/model/token";
 
 export class SpotifyRepository {
@@ -11,6 +12,9 @@ export class SpotifyRepository {
 
 
     public constructor() {
+    }
+
+    public getCode(): void {
         // On page load, try to fetch auth code from current browser search URL
         const args: URLSearchParams = new URLSearchParams(window.location.search);
         this.code = args.get('code');

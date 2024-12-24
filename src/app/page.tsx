@@ -1,10 +1,13 @@
+"use client"
 import {SpotifyRepository} from "@/repository/spotify-repository";
 import React from "react";
+
 
 export default function Home() {
   const spotifyRepository = new SpotifyRepository();
   React.useEffect(
       () =>{
+        spotifyRepository.getCode()
         // If we find a code, we're in a callback, do a token exchange
         if (spotifyRepository.code) {
           spotifyRepository.getToken().then(() => {
@@ -39,7 +42,7 @@ export default function Home() {
     await spotifyRepository.redirectToSpotifyAuthorize();
   }
 
-  async function logoutClick(): Promise<void> {
+  function logoutClick(): void {
     localStorage.clear();
     window.location.href = spotifyRepository.redirectUrl;
   }
@@ -58,7 +61,7 @@ export default function Home() {
 
         <template id="login">
           <h1>Welcome to the OAuth2 PKCE Example</h1>
-          <button id="login-button" data-bind-onclick={() => loginWithSpotifyClick()}> Log in with Spotify </button>
+          <button id="login-button" onClick={loginWithSpotifyClick}> Log in with Spotify </button>
         </template>
 
         <template id="logged-in-template">
@@ -103,8 +106,8 @@ export default function Home() {
             </tbody>
           </table>
 
-          <button id="refresh-token-button" data-bind-onclick={() => refreshTokenClick()}>Refresh Token</button>
-          <button id="logout-button" data-bind-onclick={() => logoutClick()}>Log out</button>
+          <button id="refresh-token-button" onClick={refreshTokenClick}>Refresh Token</button>
+          <button id="logout-button" onClick={logoutClick}>Log out</button>
         </template>
 
         <template id="oauth-template">
