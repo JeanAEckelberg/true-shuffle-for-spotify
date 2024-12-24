@@ -1,101 +1,167 @@
-import Image from "next/image";
+import {SpotifyRepository} from "@/repository/spotify-repository";
 
-export default function Home() {
+export default async function Home() {
+  const spotifyRepository = new SpotifyRepository();
+
+  // If we find a code, we're in a callback, do a token exchange
+  if (spotifyRepository.code) {
+    await spotifyRepository.getToken()
+
+    // Remove code from URL so we can refresh correctly.
+    const url = new URL(window.location.href);
+    url.searchParams.delete("code");
+
+    const updatedUrl = url.search ? url.href : url.href.replace('?', '');
+    window.history.replaceState({}, document.title, updatedUrl);
+  }
+
+  // If we have a token, we're logged in, so fetch user data and render logged in template
+  if (spotifyRepository.currentToken.access_token) {
+    const userData = await spotifyRepository.getUserData();
+    renderTemplate("main", "logged-in-template", userData);
+    renderTemplate("oauth", "oauth-template", spotifyRepository.currentToken);
+  }
+
+  // Otherwise we're not logged in, so render the login template
+  if (!spotifyRepository.currentToken.access_token) {
+    renderTemplate("main", "login");
+  }
+
+  // Click handlers
+  async function loginWithSpotifyClick(): Promise<void> {
+    await spotifyRepository.redirectToSpotifyAuthorize();
+  }
+
+  async function logoutClick(): Promise<void> {
+    localStorage.clear();
+    window.location.href = spotifyRepository.redirectUrl;
+  }
+
+  async function refreshTokenClick(): Promise<void> {
+    await spotifyRepository.refreshToken();
+    renderTemplate("oauth", "oauth-template", spotifyRepository.currentToken);
+  }
+
   return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/true-shuffle-for-spotify/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/true-shuffle-for-spotify/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/true-shuffle-for-spotify/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/true-shuffle-for-spotify/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/true-shuffle-for-spotify/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      <div>
+        <div id="main"></div>
+        <div id="oauth"></div>
+
+        <template id="login">
+          <h1>Welcome to the OAuth2 PKCE Example</h1>
+          <button id="login-button" data-bind-onclick={await loginWithSpotifyClick()}> Log in with Spotify </button>
+        </template>
+
+        <template id="logged-in-template">
+          <h1>Logged in as <span data-bind="display_name"></span></h1>
+          <img width="150" data-bind-src="images[0].url" data-bind-alt="display_name" />
+          <table>
+            <tbody>
+              <tr>
+                <td>Display name</td>
+                <td data-bind="display_name"></td>
+              </tr>
+              <tr>
+                <td>Id</td>
+                <td data-bind="id"></td>
+              </tr>
+              <tr>
+                <td>Email</td>
+                <td data-bind="email"></td>
+              </tr>
+              <tr>
+                <td>Spotify URI</td>
+                <td>
+                  <a data-bind="external_urls.spotify" data-bind-href="external_urls.spotify"></a>
+                </td>
+              </tr>
+              <tr>
+                <td>Link </td>
+                <td>
+                  <a data-bind="href" data-bind-href="href"></a>
+                </td>
+              </tr>
+              <tr>
+                <td>Profile Image</td>
+                <td>
+                  <a data-bind-href="images[0].url" data-bind="images[0].url"></a>
+                </td>
+              </tr>
+              <tr>
+                <td>Country</td>
+                <td data-bind="country"></td>
+              </tr>
+            </tbody>
+          </table>
+
+          <button id="refresh-token-button" data-bind-onclick={await refreshTokenClick()}>Refresh Token</button>
+          <button id="logout-button" data-bind-onclick={await logoutClick()}>Log out</button>
+        </template>
+
+        <template id="oauth-template">
+          <h2>oAuth info</h2>
+          <table>
+            <tbody>
+              <tr>
+                <td>Access token</td>
+                <td data-bind="access_token"></td>
+              </tr>
+              <tr>
+                <td>Refresh token</td>
+                <td data-bind="refresh_token"></td>
+              </tr>
+              <tr>
+                <td>Expiration at</td>
+                <td data-bind="expires">${spotifyRepository.currentToken.expires}</td>
+              </tr>
+            </tbody>
+          </table>
+        </template>
+      </div>
   );
+}
+
+// HTML Template Rendering with basic data binding - demoware only.
+// eslint-disable-next-line @typescript-eslint/no-unused-vars
+function renderTemplate(targetId: string, templateId: string, data: unknown = null) {
+  const template: HTMLElement | null = document.getElementById(templateId);
+  if (!(template instanceof HTMLTemplateElement)) {
+    return;
+  }
+  const clone: Node = template.content.cloneNode(true);
+
+  if(!(clone instanceof HTMLTemplateElement)) {
+    return;
+  }
+
+  const elements = clone.querySelectorAll("*");
+  elements.forEach((ele: Element) => {
+    const bindingAttrs = [...ele.attributes].filter(a => a.name.startsWith("data-bind"));
+
+    bindingAttrs.forEach(attr => {
+      const target = attr.name.replace(/data-bind-/, "").replace(/data-bind/, "");
+      const targetType = target.startsWith("onclick") ? "HANDLER" : "PROPERTY";
+      const targetProp = target === "" ? "innerHTML" : target;
+
+      const prefix = targetType === "PROPERTY" ? "data." : "";
+      const expression = prefix + attr.value.replace(/;\n\r\n/g, "");
+
+      // Maybe use a framework with more validation here ;)
+      try {
+        // @ts-expect-error this assigns to readonly properties which will fail
+        ele[targetProp as keyof typeof ele] = targetType === "PROPERTY" ? eval(expression) : () => { eval(expression) };
+        ele.removeAttribute(attr.name);
+      } catch (ex) {
+        console.error(`Error binding ${expression} to ${targetProp}`, ex);
+      }
+    });
+  });
+
+  const target = document.getElementById(targetId);
+  if(!(target instanceof HTMLElement)) {
+    return;
+  }
+  target.innerHTML = "";
+  target.appendChild(clone);
 }
